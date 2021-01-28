@@ -1,6 +1,54 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { StaticQuery, Link, graphql } from 'gatsby';
+import { trackCustomEvent } from 'gatsby-plugin-google-analytics';
 import ScrollIndicator from '#/components/scroll-indicator';
+
+const url = 'https://gist.githubusercontent.com/gera2ld/4f420d733bcd462aa02efe6423f15ffa/raw/d138c192e5c525675679837661cf1355f9604b93/loader.js';
+
+async function loadBanner() {
+  const res = await fetch(url);
+  const text = await res.text();
+  const script = document.createElement('script');
+  script.textContent = text;
+  document.body.append(script);
+  script.remove();
+  const html = await window.initializeBanner?.();
+  return html;
+}
+
+function trackBanner(action) {
+  trackCustomEvent({
+    category: 'global',
+    action,
+    label: 'banner',
+    transport: 'beacon',
+  });
+}
+
+function Banner() {
+  const [banner, setBanner] = useState(null);
+  useEffect(() => {
+    loadBanner().then(html => {
+      if (html) {
+        setBanner(html);
+        trackBanner('show');
+      }
+    });
+  }, []);
+  const handleClose = () => {
+    setBanner(null);
+    trackBanner('hide');
+  };
+  if (!banner) return null;
+  return (
+    <div className="bg-orange-200 px-4 text-sm flex">
+      <div className="flex-1" dangerouslySetInnerHTML={{ __html: banner }}></div>
+      <div onClick={handleClose} class="cursor-pointer text-gray-600">
+        ⨯
+      </div>
+    </div>
+  );
+}
 
 function Header(props) {
   const { data, onToggle } = props;
@@ -50,10 +98,13 @@ export default props => (
       }
     `}
     render={data => (
-      <Header
-        {...props}
-        data={data}
-      />
+      <>
+        <Banner />
+        <Header
+          {...props}
+          data={data}
+        />
+      </>
     )}
   />
 );
