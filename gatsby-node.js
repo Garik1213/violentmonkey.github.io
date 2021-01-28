@@ -120,3 +120,11 @@ exports.createPages = async ({ graphql, actions }) => {
     }
   });
 };
+
+exports.onCreateWebpackConfig = ({ actions, loaders, getConfig }) => {
+  const config = getConfig();
+  config.module.rules = config.module.rules.filter(rule => {
+    return rule.enforce !== 'pre';
+  });
+  actions.replaceWebpackConfig(config);
+};
